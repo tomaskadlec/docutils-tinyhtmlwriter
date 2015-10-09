@@ -1,0 +1,575 @@
+# -*- coding: utf-8 -*-
+"""
+Docutils Tiny HTML Writer is another docutils html writer, with very light html
+output. It will create mainly for use in other project's like doc generators or
+web publishers, which want to use their own html headers and footers.
+"""
+
+__author__ = "Ondřej Tůma (McBig) <mcbig@zeropage.cz>"
+__date__ = "9 Oct 2015"
+__version__ = "1.0"
+__docformat__ = 'reStructuredText'
+__url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
+
+from docutils import nodes, writers
+from docutils.transforms import writer_aux
+from docutils.frontend import validate_nonnegative_int
+
+
+import sys
+
+if sys.version_info[0] < 3:
+     from io import open
+
+class Writer(writers.Writer):
+    """ Writer compatible class for docutils. """
+
+    supported = ('html', 'xhtml')
+    """Formats this writer supports."""
+
+    settings_spec = (
+        'HTML-Specific Options',
+        None,
+        (('Link label for headers.',
+          ['--link'], {}),
+         ('Top label for headers.',
+          ['--top'], {}),
+         ('Start at section level',
+          ['--section-level'],{'default': 1,
+                               'validator': validate_nonnegative_int }),
+        ) )
+    settings_defaults = {}
+
+    output = None
+    visitor_attributes = visitor_attributes = (
+        'head_prefix', 'head', 'stylesheet', 'body_prefix',
+        'body_pre_docinfo', 'docinfo', 'body', 'body_suffix')
+
+    def __init__(self):
+        writers.Writer.__init__(self)
+        self.translator_class = HTMLTranslator
+
+    def translate(self):
+        visitor = self.visitor = self.translator_class(self.document)
+        self.document.walkabout(visitor)
+        self.output = ''.join(
+                sum((getattr(visitor, a) for a in self.visitor_attributes ), []))
+
+    def get_transforms(self):
+        return writers.Writer.get_transforms(self) + [writer_aux.Admonitions]
+
+
+class HTMLTranslator(nodes.NodeVisitor, object):
+    # FIXME: missing
+    #           visit_decoration
+
+    list_types = {'arabic': '1',
+                  'loweralpha': 'a',
+                  'upperalpha': 'A',
+                  'lowerroman': 'i',
+                  'upperroman': 'I',
+                  '-': 'disc',
+                  '*': 'circle',
+                  '+': 'square'}
+    admonitions = ( 'attention', 'caution', 'danger', 'error', 'hint',
+                    'important', 'note', 'tip', 'warning')
+
+    def __init__(self, document):
+        super(HTMLTranslator, self).__init__(document)
+        self.settings = document.settings
+        self.section_level = self.settings.section_level
+        self.sections = []
+        self.head_prefix = [
+                    '<!DOCTYPE html>\n',
+                   '<html lang="%s">\n' % self.settings.language_code,
+                   '<head>\n']
+        self.head = [
+                '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n',
+                '<meta name="generator" content="docutils-tinyhtmlwriter %s %s">\n' % \
+                        (__version__, __url__)]
+        self.stylesheet = []
+        self.body_prefix = ['</head>\n', '<body>\n']
+        self.body_pre_docinfo = []  # TODO: use for h1
+        self.docinfo = []           # TODO: use for docinfo
+        self.body = []
+        self.body_suffix = ['</body>\n', '</html>\n']
+        self.title = []             # TODO: for title
+        self.subtitle = []          # TODO: for subtitle
+        self.footnotes = []
+        self.citations = []
+        self.hyperlinks = []
+        self.references = {}
+
+        self.system_message = False
+
+        for admonition in self.admonitions:
+            self.__setattr__('visit_%s' % admonition, self.visit_admonition)
+            self.__setattr__('depart_%s' % admonition, self.depart_admonition)
+
+        for div in ('figure', 'caption', 'legend', 'topic', 'sidebar',
+                    'line_block', 'line'):
+            self.__setattr__('visit_%s' % div, self.visit_div)
+            self.__setattr__('depart_%s' % div, self.depart_div)
+
+        for tbl in ('field_list', 'option_list', 'docinfo'):
+            self.__setattr__('visit_%s' % tbl, self.visit_table)
+            self.__setattr__('depart_%s' % tbl, self.depart_table)
+        for row in ('field', 'option_list_item'):
+            self.__setattr__('visit_%s' % row, self.visit_row)
+            self.__setattr__('depart_%s' % row, self.depart_row)
+        for col in ('field_name','field_body', 'option_group', 'description'):
+            self.__setattr__('visit_%s' % col, self.visit_entry)
+            self.__setattr__('depart_%s' % col, self.depart_entry)
+
+    def generate_body(self):
+        content = self.body
+        if self.footnotes or self.citations or self.hyperinks:
+            content.append('<hr class="under-line">\n')
+        if self.footnotes:
+            content.append('<table class="footnotes">\n')
+            content += self.footnotes
+            content.append('</table>\n')
+        if self.citations:
+            content.append('<table class="citations">\n')
+            content += self.citations
+            content.append('</table>\n')
+        if self.hyperlinks:
+            content.append('<table class="citations">\n')
+            content += self.hyperlinks
+            content.append('</table>\n')
+        retval = ''.join(content)
+        return retval.strip()
+
+    def visit_div(self, node):
+        self.body.append('<div class="%s">' % node.tagname)
+    def depart_div(self, node):
+        self.body.append('</div>\n')
+
+    def visit_document(self, node):
+        self.head.append('<title>%s</title>\n' % node.get('title', ''))
+    def depart_document(self, node):
+        pass
+
+    def visit_meta(self, node):
+        self.head.append(str(node)[:-2]+'>\n')
+    def depart_meta(self, node):
+        pass
+
+    def visit_authors(self, node):
+        self.head.append('<meta name="authors" content="%s">\n' % \
+                        node.astext().replace('\n', ' '))
+        self.body.append('<tr><th>Authors:</th><td>%s</td></tr>\n' % node.astext())
+        raise nodes.SkipNode
+
+    def visit_author(self, node):
+        self.head.append('<meta name="author" content="%s">\n' % \
+                        node.astext().replace('\n', ''))
+    def depart_author(self, node):
+        pass
+
+    def visit_version(self, node):
+        self.body.append('<tr><th>Version:</th><td>%s</td></tr>\n' % node.astext())
+        raise nodes.SkipNode
+    def visit_status(self, node):
+        self.body.append('<tr><th>Status:</th><td>%s</td></tr>\n' % node.astext())
+        raise nodes.SkipNode
+
+    def visit_block_quote(self, node):
+        self.body.append('<blockquote>\n')
+
+    def depart_block_quote(self, node):
+        self.body.append('</blockquote>\n')
+
+    def visit_paragraph(self, node):
+        self.body.append('<p>')
+    def depart_paragraph(self, node):
+        self.body.append('</p>')
+        if node.parent.tagname in ('field_body','entry','admonition') + self.admonitions:
+            self.body.append('\n')
+        elif node.parent.tagname not in \
+        ('list_item', 'definition', 'footnote', 'citation'):
+            self.body.append('\n\n')
+
+    def visit_Text(self, node):
+        self.body.append(node.astext())
+        if node.parent.tagname == 'field_name':
+            self.body.append(':')
+    def depart_Text(self, node):
+        pass
+
+    def visit_literal(self, node):
+        self.body.append('<code>')
+    def depart_literal(self, node):
+        self.body.append('</code>')
+    def visit_literal_block(self, node):
+        attrs = ' class="%s"' % ' '.join(node['classes']) if node['classes'] else ''
+        if node['ids']:
+            attrs += ' id="%s"' % node['ids'][0]
+        self.body.append('<pre%s>\n' % attrs)
+    def depart_literal_block(self, node):
+        self.body.append('\n</pre>\n')
+    def visit_doctest_block(self, node):
+        self.body.append('<pre class="doctest">\n')
+    def depart_doctest_block(self, node):
+        self.body.append('\n</pre>\n')
+    def visit_math_block(self, node):
+        self.body.append('<pre class="math">\n')
+    def depart_math_block(self, node):
+        self.body.append('\n</pre>\n')
+
+    def visit_inline(self, node):
+        classes = node.get('classes', [])
+        if node.parent.tagname == 'literal_block':
+            if 'keyword' in classes:
+                self.body.append('<b>')
+            elif 'function' in classes or 'class' in classes:
+                self.body.append('<em>')
+            elif 'escape' in classes:
+                self.body.append('<i><b>')
+            elif 'string' in classes:
+                self.body.append('<i>')
+            elif 'comment' in classes:
+                self.body.append('<i>')
+            elif 'decorator' in classes:
+                self.body.append('<var>')
+            elif 'number' in classes:
+                self.body.append('<u>')
+            elif 'operator' in classes and 'word' in classes:
+                self.body.append('<tt>')
+            elif 'builtin' in classes or 'exception' in classes:
+                self.body.append('<kbd>')
+        else:
+            cls = ' class="%s"' % ' '.join(classes) if classes else ''
+            self.body.append('<span%s>' % cls)
+    def depart_inline(self, node):
+        if node.parent.tagname == 'literal_block':
+            classes = node.get('classes', [])
+            if 'keyword' in classes:
+                self.body.append('</b>')
+            elif 'function' in classes or 'class' in classes:
+                self.body.append('</em>')
+            elif 'escape' in classes:
+                self.body.append('</b></i>')
+            elif 'string' in classes:
+                self.body.append('</i>')
+            elif 'comment' in classes:
+                self.body.append('</i>')
+            elif 'decorator' in classes:
+                self.body.append('</var>')
+            elif 'number' in classes:
+                self.body.append('</u>')
+            elif 'operator' in classes and 'word' in classes:
+                self.body.append('</tt>')
+            elif 'builtin' in classes or 'exception' in classes:
+                self.body.append('</kbd>')
+        else:
+            self.body.append('</span>')
+
+    def visit_bullet_list(self, node):
+        self.body.append('<ul type="%s">\n' % self.list_types[node['bullet']] )
+    def depart_bullet_list(self, node):
+        self.body.append('</ul>\n\n')
+
+    def visit_enumerated_list(self, node):
+        self.body.append('<ol type="%s">\n' % self.list_types[node['enumtype']])
+    def depart_enumerated_list(self, node):
+        self.body.append('</ol>\n\n')
+
+    def visit_list_item(self, node):
+        self.body.append('<li>')
+    def depart_list_item(self, node):
+        self.body.append('</li>\n')
+
+    def visit_definition_list(self, node):
+        self.body.append('<dl>\n')
+
+    def depart_definition_list(self, node):
+        self.body.append('</dl>\n')
+
+    def visit_definition_list_item(self, node):
+        pass
+
+    def depart_definition_list_item(self, node):
+        pass
+
+    def visit_footnote_reference(self, node):
+        self.body.append('<a href="#%s">' % node.get('refid'))
+    def depart_footnote_reference(self, node):
+        self.body.append('</a>')
+
+    def visit_footnote(self, node):
+        self.context = self.body
+        self.body = self.footnotes
+        self.body.append('<tr>')
+        self.body.append('<td><a name="%s"></a>' % node['ids'][0])
+    def depart_footnote(self, node):
+        self.body.append('</td></tr>\n')
+        self.body = self.context
+
+    def visit_citation_reference(self, node):
+        self.body.append('<a href="#%s">[' % node['refid'])
+    def depart_citation_reference(self, node):
+        self.body.append(']</a>')
+
+    def visit_citation(self, node):
+        self.context = self.body
+        self.body = self.citations
+        self.body.append('<tr>')
+        self.body.append('<td><a name="%s"></a>' % node['names'][0])
+    def depart_citation(self, node):
+        self.body.append('</td></tr>\n')
+        self.body = self.context
+
+    def visit_label(self, node):
+        if node.parent.tagname in ('footnote', 'citation'):
+            self.body.append('<b>[ ')
+    def depart_label(self, node):
+        if node.parent.tagname in ('footnote', 'citation'):
+            self.body.append(' ]</b></td><td>')
+
+    def visit_emphasis(self, node):
+        self.body.append('<em>')
+    def depart_emphasis(self, node):
+        self.body.append('</em>')
+
+    def visit_strong(self, node):
+        self.body.append('<b>')
+    def depart_strong(self, node):
+        self.body.append('</b>')
+
+    def visit_title_reference(self, node):
+        self.body.append('<cite>')
+    def depart_title_reference(self, node):
+        self.body.append('</cite>')
+
+    def visit_reference(self, node):
+        if 'refuri' in node:
+            self.body.append('<a href="%s">' % node['refuri'])
+            if 'name' in node:
+                self.references[node['name'].lower()] = node['name']
+        else:
+            self.body.append('<a href="#%s">' % node['refid'])
+    def depart_reference(self, node):
+        self.body.append('</a>')
+
+    def visit_substitution_reference(self, node):
+        raise RuntimeError()
+
+    def visit_substitution_definition(self, node):
+        raise nodes.SkipNode
+
+    def visit_target(self, node):
+        if 'refid' in node:
+            self.body.append('<a name="%s"></a>' % node['refid'])
+        if 'refuri' in node and node['names']:
+            name = node['names'][0]
+            if name in self.references:
+                self.hyperlinks.append('<tr><th>%s</th><td>%s</td></tr>\n' % \
+                                    (self.references[name], node['refuri']))
+    def depart_target(self, node):
+        pass
+
+    def visit_raw(self, node):
+        if 'html' in node['format']:
+            self.body.append(node.astext())
+    def depart_raw(self, node):
+        pass
+
+    def visit_section(self, node):
+        if 'system-messages' in node['classes']:
+            if not self.system_message:
+                raise nodes.SkipNode
+        else:
+            self.section_level += 1
+            ids = node['ids'][0]
+
+            self.body.append('\n<a name="%s"></a>' % ids)
+            self.sections.append((self.section_level, node['names'][0], ids))
+    def depart_section(self, node):
+        if 'system-messages' not in node['classes']:
+            self.section_level -= 1
+
+    def visit_title(self, node):
+        #TODO: sections will append from here if parent.tagname == section
+        if node.parent.tagname == 'section' \
+        and 'system-messages' not in node.parent['classes']:
+            if self.section_level != 1:
+                lvl, name, ids = self.sections[-1]
+                self.sections[-1] = (lvl, node.astext(), ids)   # update section name
+            if self.section_level < 7:
+                self.body.append('<h%d>' % self.section_level)
+            else:
+                self.body.append('<div class="h%d">' % self.section_level)
+        else:
+            if node.parent.tagname == 'document':
+                #self.section_level += 1
+                self.body.append('<h1 class="title">')
+            else:
+                self.body.append('<div class="title">')
+    def depart_title(self, node):
+        if node.parent.tagname == 'section' \
+        and 'system-messages' not in node.parent['classes']:
+            if self.section_level != 1 and (self.settings.link or self.settings.top):
+                last_section = self.sections[-1]
+                self.body.append('<span class="links">')
+                if self.settings.link:
+                    self.body.append('<a href="#%s">%s</a>' % (last_section[2], self.settings.link))
+                if self.settings.link and self.settings.top:
+                    self.body.append(' | ')
+                if self.settings.top:
+                    self.body.append('<a href="#">%s</a>' % self.settings.top)
+                self.body.append('</span>')
+
+        if self.section_level < 7 and node.parent.tagname == 'section'\
+        and 'system-messages' not in node.parent['classes']:
+            self.body.append('</h%d>\n' % self.section_level)
+        else:
+            if node.parent.tagname == 'document':
+                self.body.append('</h1>\n')
+                #self.section_level -= 1
+            else:
+               self.body.append('</div>\n')
+
+    def visit_subtitle(self, node):
+        if node.parent.tagname == 'document':
+            self.body.append('<h2>')
+        else:
+            self.body.append('<p class="subtitle">')
+    def depart_subtitle(self, node):
+        if node.parent.tagname == 'document':
+            self.body.append('</h2\n>')
+        else:
+            self.body.append('</p>\n')
+
+    def visit_term(self, node):
+        self.body.append('<dt>')
+    def depart_term(self, node):
+        pass
+
+    def visit_definition(self, node):
+        self.body.append('</dt>\n')
+        self.body.append('<dd>')
+    def depart_definition(self, node):
+        self.body.append('</dd>\n')
+
+    def visit_system_message(self, node):
+        if not self.system_message:
+            raise nodes.SkipNode
+        self.body.append('<fieldset>\n')
+        self.body.append('<legend>System message</legend>\n')
+    def depart_system_message(self, node):
+        self.body.append('</fieldset>\n\n')
+
+    def visit_image(self, node):
+        attrs = 'src="%s"' % node['uri']
+        if 'alt' in node:
+            attrs += ' alt="%s"' % node['alt']
+        if 'width' in node:
+            attrs += ' width="%s"' % node['width']
+        if 'height' in node:
+            attrs += ' height="%s"' % node['height']
+        if node['ids']:
+            attrs += ' id="%s"' % node['ids'][0]
+        self.body.append("<img %s>" % attrs)
+    def depart_image(self, node):
+        pass
+
+    def visit_table(self, node):
+        cls = ' class="%s"' % node.tagname if node.tagname != 'table' else ''
+        self.body.append('<table%s>\n' %cls)
+    def depart_table(self, node):
+        self.body.append('</table>\n')
+    def visit_tgroup(self, node):
+        pass
+    def depart_tgroup(self, node):
+        pass
+    def visit_colspec(self, node):
+        pass
+    def depart_colspec(self, node):
+        pass
+    def visit_thead(self, node):
+        self.body.append('<thead>')
+    def depart_thead(self, node):
+        self.body.append('</thead>\n')
+    def visit_tbody(self, node):
+        self.body.append('<tbody>')
+    def depart_tbody(self, node):
+        self.body.append('</tbody>\n')
+    def visit_row(self, node):
+        self.body.append('<tr>')
+    def depart_row(self, node):
+        self.body.append('</tr>\n')
+    def visit_entry(self, node):
+        colspan = ' colspan=%d' % (int(node['morecols'])+1) if 'morecols' in node else ''
+        rowspan = ' rowspan=%d' % (int(node['morerows'])+1) if 'morerows' in node else ''
+        if node.parent.parent.tagname == 'thead' or node.tagname == 'field_name':
+            self.body.append('<th%s>' % (colspan + rowspan))
+        else:
+            self.body.append('<td%s>' % (colspan + rowspan))
+    def depart_entry(self, node):
+        if node.parent.parent.tagname == 'thead' or node.tagname == 'field_name':
+            self.body.append('</th>')
+        else:
+            self.body.append('</td>')
+
+    def visit_option(self, node):
+        self.body.append('<code>')
+    def depart_option(self, node):
+        self.body.append('</code>')
+    def visit_option_string(self, node):
+        pass
+    def depart_option_string(self, node):
+        self.body.append(' ')
+    def visit_option_argument(self, node):
+        self.body.append('<i>')
+    def depart_option_argument(self, node):
+        self.body.append('</i>')
+
+    def visit_transition(self, node):
+        self.body.append('<hr>')
+    def depart_transition(self, node):
+        pass
+
+    def visit_admonition(self, node):
+        self.body.append('<fieldset class="%s">\n' % node.tagname)
+        self.body.append('<legend>%s</legend>\n' % node.tagname.capitalize())
+    def depart_admonition(self, node):
+        self.body.append('</fieldset>\n\n')
+
+    def visit_comment(self, node):
+        self.body.append('<!-- ')
+    def depart_comment(self, node):
+        self.body.append(' -->\n')
+
+    def visit_pending(self, node):
+        raise nodes.SkipNode
+
+    def visit_problematic(self, node):
+        self.body.append('<span class="problematic">')
+    def depart_problematic(self, node):
+        self.body.append('</span>')
+
+
+if __name__ == "__main__":
+    # This is simple implementation test for visit_methods difference to original
+    from docutils.core import publish_string, publish_parts
+    from docutils.writers import html4css1
+    class Mock(str):
+        def __call__(self, *args, **kwargs):
+            return Mock()
+        def __getattribute__(self, attr):
+            return Mock()
+        def __str__(self):
+            return 'mock'
+        def __iter__(self):
+            yield Mock()
+        def __getitem__(self, item):
+            return Mock()
+        def __int__(self):
+            return 0
+
+    tiny_visits = list(a for a in dir(HTMLTranslator(Mock())) if a.startswith('visit_'))
+    html4_visits = list(a for a in dir(html4css1.HTMLTranslator(Mock())) if a.startswith('visit_'))
+
+    diff = set(html4_visits) - set(tiny_visits)
+    assert  diff == set(), "Misssing visit_ methods: %s" % ', '.join(diff)
