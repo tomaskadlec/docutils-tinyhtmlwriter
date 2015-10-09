@@ -31,6 +31,7 @@ One of possible use:
 
 Installation
 ------------
+.. warning:: This package is still under development. Pip is not prepare yet!
 
 .. code-block:: sh
 
