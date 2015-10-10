@@ -21,13 +21,12 @@ One of possible use:
 
     # store full html output to html variable
     html = publish_string(source=rst,
-                          parser_name='restructuredtext',
-                          writer=Writer(),
+                          writer=writer,
                           writer_name='html',
                           settings_overrides={'link': 'link', 'top': 'top'})
 
     # store only html body
-    body = writer.generate_body()
+    body = writer.visitor.generate_body()
 
 Installation
 ------------
