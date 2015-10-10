@@ -123,7 +123,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def generate_body(self):
         content = self.body
-        if self.footnotes or self.citations or self.hyperinks:
+        if self.footnotes or self.citations or self.hyperlinks:
             content.append('<hr class="under-line">\n')
         if self.footnotes:
             content.append('<table class="footnotes">\n')
@@ -164,8 +164,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
     def visit_author(self, node):
         self.head.append('<meta name="author" content="%s">\n' % \
                         node.astext().replace('\n', ''))
-    def depart_author(self, node):
-        pass
+        raise nodes.SkipNode
 
     def visit_version(self, node):
         self.body.append('<tr><th>Version:</th><td>%s</td></tr>\n' % node.astext())
