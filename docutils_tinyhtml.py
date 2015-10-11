@@ -41,9 +41,12 @@ class Writer(writers.Writer):
     settings_defaults = {}
 
     output = None
-    visitor_attributes = visitor_attributes = (
+    visitor_attributes = (
         'head_prefix', 'head', 'stylesheet', 'body_prefix',
-        'body_pre_docinfo', 'docinfo', 'body', 'body_suffix')
+        'docinfo', 'html_title', 'body',
+        'html_line', 'html_footnotes', 'html_citations', 'html_hyperlinks',
+        'body_suffix')
+    visitor_addons = ('sections',)#, 'footnotes', 'citations', 'hyperlinks')
 
     def __init__(self):
         writers.Writer.__init__(self)
@@ -57,6 +60,13 @@ class Writer(writers.Writer):
 
     def get_transforms(self):
         return writers.Writer.get_transforms(self) + [writer_aux.Admonitions]
+
+    def assemble_parts(self):
+        writers.Writer.assemble_parts(self)
+        for part in self.visitor_attributes:
+            self.parts[part] = ''.join(getattr(self.visitor, part))
+        for part in self.visitor_addons:
+            self.parts[part] = getattr(self.visitor, part)
 
 
 class HTMLTranslator(nodes.NodeVisitor, object):
@@ -78,7 +88,6 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         super(HTMLTranslator, self).__init__(document)
         self.settings = document.settings
         self.section_level = self.settings.section_level
-        self.sections = []
         self.head_prefix = [
                     '<!DOCTYPE html>\n',
                    '<html lang="%s">\n' % self.settings.language_code,
@@ -89,16 +98,23 @@ class HTMLTranslator(nodes.NodeVisitor, object):
                         (__version__, __url__)]
         self.stylesheet = []
         self.body_prefix = ['</head>\n', '<body>\n']
-        self.body_pre_docinfo = []  # TODO: use for h1
+        self.title = ''
+        self.html_title = []
         self.docinfo = []           # TODO: use for docinfo
         self.body = []
         self.body_suffix = ['</body>\n', '</html>\n']
-        self.title = []             # TODO: for title
         self.subtitle = []          # TODO: for subtitle
-        self.footnotes = []
-        self.citations = []
-        self.hyperlinks = []
-        self.references = {}
+        self.html_line = []
+        self.html_footnotes = []
+        self.html_citations = []
+        self.html_hyperlinks = []
+        self._references = {}
+
+        # addons
+        self.sections = []
+        self.footnotes = []         # TODO
+        self.citations = []         # TODO
+        self.hyperlinks = []        # TODO
 
         self.system_message = False
 
@@ -122,21 +138,12 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             self.__setattr__('depart_%s' % col, self.depart_entry)
 
     def generate_body(self):
-        content = self.body
-        if self.footnotes or self.citations or self.hyperlinks:
+        content = self.html_title + self.body
+        if self.html_footnotes or self.html_citations or self.html_hyperlinks:
             content.append('<hr class="under-line">\n')
-        if self.footnotes:
-            content.append('<table class="footnotes">\n')
-            content += self.footnotes
-            content.append('</table>\n')
-        if self.citations:
-            content.append('<table class="citations">\n')
-            content += self.citations
-            content.append('</table>\n')
-        if self.hyperlinks:
-            content.append('<table class="citations">\n')
-            content += self.hyperlinks
-            content.append('</table>\n')
+            content += self.html_footnotes
+            content += self.html_citations
+            content += self.html_hyperlinks
         retval = ''.join(content)
         return retval.strip()
 
@@ -146,9 +153,21 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         self.body.append('</div>\n')
 
     def visit_document(self, node):
-        self.head.append('<title>%s</title>\n' % node.get('title', ''))
+        self.title = node.get('title', '')
+        self.head.append('<title>%s</title>\n' % self.title)
     def depart_document(self, node):
-        pass
+        if self.html_footnotes or self.html_citations or self.html_hyperlinks:
+            self.html_line.append('<hr class="under-line">\n')
+
+            if self.html_footnotes:
+                self.html_footnotes.insert(0, '<table class="footnotes">\n')
+                self.html_footnotes.append('</table>\n')
+            if self.html_citations:
+                self.html_citations.insert(0, '<table class="citations">\n')
+                self.html_citations.append('</table>\n')
+            if self.html_hyperlinks:
+                self.html_hyperlinks.insert(0, '<table class="hyperlinks">\n')
+                self.html_hyperlinks.append('</table>\n')
 
     def visit_meta(self, node):
         self.head.append(str(node)[:-2]+'>\n')
@@ -298,7 +317,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def visit_footnote(self, node):
         self.context = self.body
-        self.body = self.footnotes
+        self.body = self.html_footnotes
         self.body.append('<tr>')
         self.body.append('<td><a name="%s"></a>' % node['ids'][0])
     def depart_footnote(self, node):
@@ -312,7 +331,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def visit_citation(self, node):
         self.context = self.body
-        self.body = self.citations
+        self.body = self.html_citations
         self.body.append('<tr>')
         self.body.append('<td><a name="%s"></a>' % node['names'][0])
     def depart_citation(self, node):
@@ -345,7 +364,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         if 'refuri' in node:
             self.body.append('<a href="%s">' % node['refuri'])
             if 'name' in node:
-                self.references[node['name'].lower()] = node['name']
+                self._references[node['name'].lower()] = node['name']
         else:
             self.body.append('<a href="#%s">' % node['refid'])
     def depart_reference(self, node):
@@ -362,9 +381,9 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             self.body.append('<a name="%s"></a>' % node['refid'])
         if 'refuri' in node and node['names']:
             name = node['names'][0]
-            if name in self.references:
-                self.hyperlinks.append('<tr><th>%s</th><td>%s</td></tr>\n' % \
-                                    (self.references[name], node['refuri']))
+            if name in self._references:
+                self.html_hyperlinks.append('<tr><th>%s</th><td>%s</td></tr>\n' % \
+                                    (self._references[name], node['refuri']))
     def depart_target(self, node):
         pass
 
@@ -401,7 +420,8 @@ class HTMLTranslator(nodes.NodeVisitor, object):
                 self.body.append('<div class="h%d">' % self.section_level)
         else:
             if node.parent.tagname == 'document':
-                #self.section_level += 1
+                self.context = self.body
+                self.body = self.html_title
                 self.body.append('<h1 class="title">')
             else:
                 self.body.append('<div class="title">')
@@ -425,7 +445,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         else:
             if node.parent.tagname == 'document':
                 self.body.append('</h1>\n')
-                #self.section_level -= 1
+                self.body = self.context
             else:
                self.body.append('</div>\n')
 
