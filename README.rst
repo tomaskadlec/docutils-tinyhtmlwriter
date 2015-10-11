@@ -25,8 +25,13 @@ One of possible use:
                           writer_name='html',
                           settings_overrides={'link': 'link', 'top': 'top'})
 
+    parts = publish_parts(source=rst,
+                          writer=writer,
+                          writer_name='html')
+
     # store only html body
-    body = writer.visitor.generate_body()
+    body = parts['html_title'] + parts['body'] + parts['html_line'] + \
+           parts['html_footnotes'] + parts['html_citations'] + parts['html_hyperlinks']
 
 Installation
 ------------

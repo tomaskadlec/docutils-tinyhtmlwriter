@@ -137,15 +137,6 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             self.__setattr__('visit_%s' % col, self.visit_entry)
             self.__setattr__('depart_%s' % col, self.depart_entry)
 
-    def generate_body(self):
-        content = self.html_title + self.body
-        if self.html_footnotes or self.html_citations or self.html_hyperlinks:
-            content.append('<hr class="under-line">\n')
-            content += self.html_footnotes
-            content += self.html_citations
-            content += self.html_hyperlinks
-        retval = ''.join(content)
-        return retval.strip()
 
     def visit_div(self, node):
         self.body.append('<div class="%s">' % node.tagname)
