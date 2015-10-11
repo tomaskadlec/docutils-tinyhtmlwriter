@@ -7,7 +7,7 @@ web publishers, which want to use their own html headers and footers.
 
 __author__ = "Ondřej Tůma (McBig) <mcbig@zeropage.cz>"
 __date__ = "9 Oct 2015"
-__version__ = "1.0"
+__version__ = "1.0.0"
 __docformat__ = 'reStructuredText'
 __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
