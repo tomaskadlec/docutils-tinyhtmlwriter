@@ -25,9 +25,11 @@ One of possible use:
                           writer_name='html',
                           settings_overrides={'link': 'link', 'top': 'top'})
 
+    # disable system message in html, no in stderr
     parts = publish_parts(source=rst,
                           writer=writer,
-                          writer_name='html')
+                          writer_name='html',
+                          settings_overrides={'no_system_messages': True})
 
     # store only html body
     body = parts['html_title'] + parts['body'] + parts['html_line'] + \

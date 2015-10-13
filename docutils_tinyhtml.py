@@ -13,13 +13,10 @@ __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
 from docutils import nodes, writers
 from docutils.transforms import writer_aux
-from docutils.frontend import validate_nonnegative_int
+from docutils.frontend import validate_nonnegative_int, validate_boolean
 
+# import sys
 
-import sys
-
-if sys.version_info[0] < 3:
-     from io import open
 
 class Writer(writers.Writer):
     """ Writer compatible class for docutils. """
@@ -34,10 +31,16 @@ class Writer(writers.Writer):
           ['--link'], {}),
          ('Top label for headers.',
           ['--top'], {}),
-         ('Start at section level',
-          ['--section-level'],{'default': 1,
-                               'validator': validate_nonnegative_int }),
-        ) )
+         ('Specify the initial header level.  Default is 1 for "<h1>".  '
+          'Does not affect document title & subtitle (see --no-doc-title).',
+          ['--initial-header-level'],
+          {'choices': '1 2 3 4 5 6'.split(), 'default': 1,
+           'metavar': '<level>', 'validator': validate_nonnegative_int}),
+         ('Disable the system messages in output html.',
+          ['--no-system-messages'],
+          {'default': 0, 'action': 'store_true',
+           'validator': validate_boolean}),
+         ))
     settings_defaults = {}
 
     output = None
@@ -46,7 +49,7 @@ class Writer(writers.Writer):
         'docinfo', 'html_title', 'body',
         'html_line', 'html_footnotes', 'html_citations', 'html_hyperlinks',
         'body_suffix')
-    visitor_addons = ('sections',)#, 'footnotes', 'citations', 'hyperlinks')
+    visitor_addons = ('sections',)  # , 'footnotes', 'citations', 'hyperlinks')
 
     def __init__(self):
         writers.Writer.__init__(self)
@@ -56,7 +59,7 @@ class Writer(writers.Writer):
         visitor = self.visitor = self.translator_class(self.document)
         self.document.walkabout(visitor)
         self.output = ''.join(
-                sum((getattr(visitor, a) for a in self.visitor_attributes ), []))
+            sum((getattr(visitor, a) for a in self.visitor_attributes), []))
 
     def get_transforms(self):
         return writers.Writer.get_transforms(self) + [writer_aux.Admonitions]
@@ -87,7 +90,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
     def __init__(self, document):
         super(HTMLTranslator, self).__init__(document)
         self.settings = document.settings
-        self.section_level = self.settings.section_level
+        self.section_level = self.settings.initial_header_level
         self.head_prefix = [
                     '<!DOCTYPE html>\n',
                    '<html lang="%s">\n' % self.settings.language_code,
@@ -115,8 +118,6 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         self.footnotes = []         # TODO
         self.citations = []         # TODO
         self.hyperlinks = []        # TODO
-
-        self.system_message = False
 
         for admonition in self.admonitions:
             self.__setattr__('visit_%s' % admonition, self.visit_admonition)
@@ -386,7 +387,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def visit_section(self, node):
         if 'system-messages' in node['classes']:
-            if not self.system_message:
+            if self.settings.no_system_messages:
                 raise nodes.SkipNode
         else:
             self.section_level += 1
@@ -463,7 +464,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         self.body.append('</dd>\n')
 
     def visit_system_message(self, node):
-        if not self.system_message:
+        if self.settings.no_system_messages:
             raise nodes.SkipNode
         self.body.append('<fieldset>\n')
         self.body.append('<legend>System message</legend>\n')
