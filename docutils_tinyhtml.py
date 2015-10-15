@@ -49,7 +49,8 @@ class Writer(writers.Writer):
         'docinfo', 'html_title', 'body',
         'html_line', 'html_footnotes', 'html_citations', 'html_hyperlinks',
         'body_suffix')
-    visitor_addons = ('sections',)  # , 'footnotes', 'citations', 'hyperlinks')
+    # TODO: 'footnotes', 'citations', 'hyperlinks')
+    visitor_addons = ('title', 'sections')
 
     def __init__(self):
         writers.Writer.__init__(self)
@@ -450,6 +451,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             if node.parent.tagname == 'document':
                 self.context = self.body
                 self.body = self.html_title
+                self.title = node.astext()
                 self.body.append('<h1 class="title">')
             else:
                 self.body.append('<div class="title">')
