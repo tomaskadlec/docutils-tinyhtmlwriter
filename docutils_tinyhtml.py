@@ -87,6 +87,11 @@ class HTMLTranslator(nodes.NodeVisitor, object):
                   '+': 'square'}
     admonitions = ('attention', 'caution', 'danger', 'error', 'hint',
                    'important', 'note', 'tip', 'warning')
+    html_escape_table = {'&': "&amp;",
+                         '"': "&quot;",
+                         "'": "&apos;",
+                         '>': "&gt;",
+                         '<': "&lt;"}
 
     def __init__(self, document):
         super(HTMLTranslator, self).__init__(document)
@@ -139,6 +144,9 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             self.__setattr__('visit_%s' % col, self.visit_entry)
             self.__setattr__('depart_%s' % col, self.depart_entry)
 
+    def html_escape(self, node):
+        return "".join(self.html_escape_table.get(c, c) for c in node.astext())
+
     def visit_div(self, node):
         self.body.append('<div class="%s">' % node.tagname)
 
@@ -171,24 +179,24 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def visit_authors(self, node):
         self.head.append('<meta name="authors" content="%s">\n' %
-                         node.astext().replace('\n', ' '))
+                         self.html_escape(node).replace('\n', ' '))
         self.body.append('<tr><th>Authors:</th><td>%s</td></tr>\n' %
-                         node.astext())
+                         self.html_escape(node))
         raise nodes.SkipNode
 
     def visit_author(self, node):
         self.head.append('<meta name="author" content="%s">\n' %
-                         node.astext().replace('\n', ''))
+                         self.html_escape(node).replace('\n', ''))
         raise nodes.SkipNode
 
     def visit_version(self, node):
         self.body.append('<tr><th>Version:</th><td>%s</td></tr>\n' %
-                         node.astext())
+                         self.html_escape(node))
         raise nodes.SkipNode
 
     def visit_status(self, node):
         self.body.append('<tr><th>Status:</th><td>%s</td></tr>\n' %
-                         node.astext())
+                         self.html_escape(node))
         raise nodes.SkipNode
 
     def visit_block_quote(self, node):
@@ -210,7 +218,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             self.body.append('\n\n')
 
     def visit_Text(self, node):
-        self.body.append(node.astext())
+        self.body.append(self.html_escape(node))
         if node.parent.tagname == 'field_name':
             self.body.append(':')
 
@@ -442,7 +450,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             if self.section_level != 1:
                 lvl, name, ids = self.sections[-1]
                 # update section name
-                self.sections[-1] = (lvl, node.astext(), ids)
+                self.sections[-1] = (lvl, self.html_escape(node), ids)
             if self.section_level < 7:
                 self.body.append('<h%d>' % self.section_level)
             else:
@@ -451,7 +459,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             if node.parent.tagname == 'document':
                 self.context = self.body
                 self.body = self.html_title
-                self.title = node.astext()
+                self.title = self.html_escape(node)
                 self.body.append('<h1 class="title">')
             else:
                 self.body.append('<div class="title">')
