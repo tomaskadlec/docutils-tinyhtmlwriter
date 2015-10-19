@@ -389,7 +389,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         self.body.append('<cite>')
 
     def depart_title_reference(self, node):
-        self.body.append('</cite>')
+        self.body.append('</cite> ')
 
     def visit_reference(self, node):
         if 'refuri' in node:
@@ -514,6 +514,12 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def depart_definition(self, node):
         self.body.append('</dd>\n')
+
+    def visit_classifier(self, node):
+        self.body.append(': <tt>')
+
+    def depart_classifier(self, node):
+        self.body.append('</tt>')
 
     def visit_system_message(self, node):
         if self.settings.no_system_messages:
