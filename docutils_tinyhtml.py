@@ -40,6 +40,10 @@ class Writer(writers.Writer):
           ['--no-system-messages'],
           {'default': 0, 'action': 'store_true',
            'validator': validate_boolean}),
+         ('Enable html hyperlinks in footnotes section.',
+          ['--foot-hyperlinks'],
+          {'default': 0, 'action': 'store_true',
+           'validator': validate_boolean}),
          ))
     settings_defaults = {}
 
@@ -396,7 +400,8 @@ class HTMLTranslator(n.NodeVisitor, object):
 
     def visit_reference(self, node):
         if 'refuri' in node:
-            self.body.append('<a href="%s">' % node['refuri'])
+            self.body.append('<a href="%s">' %
+                             node['refuri'].replace('&', '&amp;'))
             if 'name' in node:
                 self._references[node['name'].lower()] = node['name']
         else:
@@ -416,10 +421,11 @@ class HTMLTranslator(n.NodeVisitor, object):
             self.body.append('<a name="%s"></a>' % node['refid'])
         if 'refuri' in node and node['names']:
             name = node['names'][0]
-            if name in self._references:
+            if self.settings.foot_hyperlinks and name in self._references:
+                refuri = node['refuri'].replace('&', '&amp;')
                 self.html_hyperlinks.append(
-                    '<tr><th>%s</th><td>%s</td></tr>\n' %
-                    (self._references[name], node['refuri']))
+                    '<tr><th>%s</th><td><a href="%s">%s</a></td></tr>\n' %
+                    (self._references[name], refuri, refuri))
 
     def depart_target(self, node):
         pass
