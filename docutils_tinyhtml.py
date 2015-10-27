@@ -11,7 +11,7 @@ __version__ = "1.0.0"
 __docformat__ = 'reStructuredText'
 __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
-from docutils import nodes, writers
+from docutils import nodes as n, writers
 from docutils.transforms import writer_aux
 from docutils.frontend import validate_nonnegative_int, validate_boolean
 
@@ -73,7 +73,7 @@ class Writer(writers.Writer):
             self.parts[part] = getattr(self.visitor, part)
 
 
-class HTMLTranslator(nodes.NodeVisitor, object):
+class HTMLTranslator(n.NodeVisitor, object):
     # FIXME: missing
     #           visit_decoration
 
@@ -182,22 +182,22 @@ class HTMLTranslator(nodes.NodeVisitor, object):
                          self.html_escape(node).replace('\n', ' '))
         self.body.append('<tr><th>Authors:</th><td>%s</td></tr>\n' %
                          self.html_escape(node))
-        raise nodes.SkipNode
+        raise n.SkipNode
 
     def visit_author(self, node):
         self.head.append('<meta name="author" content="%s">\n' %
                          self.html_escape(node).replace('\n', ''))
-        raise nodes.SkipNode
+        raise n.SkipNode
 
     def visit_version(self, node):
         self.body.append('<tr><th>Version:</th><td>%s</td></tr>\n' %
                          self.html_escape(node))
-        raise nodes.SkipNode
+        raise n.SkipNode
 
     def visit_status(self, node):
         self.body.append('<tr><th>Status:</th><td>%s</td></tr>\n' %
                          self.html_escape(node))
-        raise nodes.SkipNode
+        raise n.SkipNode
 
     def visit_block_quote(self, node):
         self.body.append('<blockquote>\n')
@@ -210,8 +210,10 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def depart_paragraph(self, node):
         self.body.append('</p>')
-        if node.parent.tagname in ('field_body', 'entry', 'admonition') + \
-                self.admonitions:
+        parent_classes = tuple(
+            getattr(n, it) for it in ('field_body', 'entry', 'admonition') +
+                                     (self.admonitions))
+        if isinstance(node.parent, parent_classes):
             self.body.append('\n')
         elif node.parent.tagname not in \
                 ('list_item', 'definition', 'footnote', 'citation'):
@@ -219,7 +221,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def visit_Text(self, node):
         self.body.append(self.html_escape(node))
-        if node.parent.tagname == 'field_name':
+        if isinstance(node.parent, n.field_name):
             self.body.append(':')
 
     def depart_Text(self, node):
@@ -255,7 +257,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def visit_inline(self, node):
         classes = node.get('classes', [])
-        if node.parent.tagname == 'literal_block':
+        if isinstance(node.parent, n.literal_block):
             if 'keyword' in classes:
                 self.body.append('<b>')
             elif 'function' in classes or 'class' in classes:
@@ -279,7 +281,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             self.body.append('<span%s>' % cls)
 
     def depart_inline(self, node):
-        if node.parent.tagname == 'literal_block':
+        if isinstance(node.parent, n.literal_block):
             classes = node.get('classes', [])
             if 'keyword' in classes:
                 self.body.append('</b>')
@@ -366,11 +368,11 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         self.body = self.context
 
     def visit_label(self, node):
-        if node.parent.tagname in ('footnote', 'citation'):
+        if isinstance(node.parent, (n.footnote, n.citation)):
             self.body.append('<b>[ ')
 
     def depart_label(self, node):
-        if node.parent.tagname in ('footnote', 'citation'):
+        if isinstance(node.parent, (n.footnote, n.citation)):
             self.body.append(' ]</b></td><td>')
 
     def visit_emphasis(self, node):
@@ -406,7 +408,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         raise RuntimeError()
 
     def visit_substitution_definition(self, node):
-        raise nodes.SkipNode
+        raise n.SkipNode
 
     def visit_target(self, node):
         if 'refid' in node:
@@ -431,7 +433,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
     def visit_section(self, node):
         if 'system-messages' in node['classes']:
             if self.settings.no_system_messages:
-                raise nodes.SkipNode
+                raise n.SkipNode
         else:
             self.section_level += 1
             ids = node['ids'][0]
@@ -445,7 +447,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def visit_title(self, node):
         # TODO: sections will append from here if parent.tagname == section
-        if node.parent.tagname == 'section' \
+        if isinstance(node.parent, n.section) \
                 and 'system-messages' not in node.parent['classes']:
             if self.section_level != 1:
                 lvl, name, ids = self.sections[-1]
@@ -456,7 +458,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
             else:
                 self.body.append('<div class="h%d">' % self.section_level)
         else:
-            if node.parent.tagname == 'document':
+            if isinstance(node.parent, n.document):
                 self.context = self.body
                 self.body = self.html_title
                 self.title = self.html_escape(node)
@@ -465,7 +467,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
                 self.body.append('<div class="title">')
 
     def depart_title(self, node):
-        if node.parent.tagname == 'section' \
+        if isinstance(node.parent, n.section) \
                 and 'system-messages' not in node.parent['classes']:
             if self.section_level != 1 and \
                     (self.settings.link or self.settings.top):
@@ -480,24 +482,24 @@ class HTMLTranslator(nodes.NodeVisitor, object):
                     self.body.append('<a href="#">%s</a>' % self.settings.top)
                 self.body.append('</span>')
 
-        if self.section_level < 7 and node.parent.tagname == 'section' \
+        if self.section_level < 7 and isinstance(node.parent, n.section) \
                 and 'system-messages' not in node.parent['classes']:
             self.body.append('</h%d>\n' % self.section_level)
         else:
-            if node.parent.tagname == 'document':
+            if isinstance(node.parent, n.document):
                 self.body.append('</h1>\n')
                 self.body = self.context
             else:
                 self.body.append('</div>\n')
 
     def visit_subtitle(self, node):
-        if node.parent.tagname == 'document':
+        if isinstance(node.parent, n.document):
             self.body.append('<h2>')
         else:
             self.body.append('<p class="subtitle">')
 
     def depart_subtitle(self, node):
-        if node.parent.tagname == 'document':
+        if isinstance(node.parent, n.document):
             self.body.append('</h2\n>')
         else:
             self.body.append('</p>\n')
@@ -523,7 +525,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     def visit_system_message(self, node):
         if self.settings.no_system_messages:
-            raise nodes.SkipNode
+            raise n.SkipNode
         self.body.append('<fieldset>\n')
         self.body.append('<legend>System message</legend>\n')
 
@@ -547,7 +549,8 @@ class HTMLTranslator(nodes.NodeVisitor, object):
 
     # ---- Tables part
     def visit_table(self, node):
-        cls = ' class="%s"' % node.tagname if node.tagname != 'table' else ''
+        cls = ' class="%s"' % \
+            node.tagname if not isinstance(node, n.table) else ''
         self.body.append('<table%s>\n' % cls)
 
     def depart_table(self, node):
@@ -588,15 +591,15 @@ class HTMLTranslator(nodes.NodeVisitor, object):
                   (int(node['morecols'])+1) if 'morecols' in node else ''
         rowspan = ' rowspan=%d' % \
                   (int(node['morerows'])+1) if 'morerows' in node else ''
-        if node.parent.parent.tagname == 'thead' \
-                or node.tagname == 'field_name':
+        if isinstance(node.parent, n.thead) \
+                or isinstance(node, n.field_name):
             self.body.append('<th%s>' % (colspan + rowspan))
         else:
             self.body.append('<td%s>' % (colspan + rowspan))
 
     def depart_entry(self, node):
-        if node.parent.parent.tagname == 'thead' \
-                or node.tagname == 'field_name':
+        if isinstance(node.parent, n.thead) \
+                or isinstance(node, n.field_name):
             self.body.append('</th>')
         else:
             self.body.append('</td>')
@@ -640,7 +643,7 @@ class HTMLTranslator(nodes.NodeVisitor, object):
         self.body.append(' -->\n')
 
     def visit_pending(self, node):
-        raise nodes.SkipNode
+        raise n.SkipNode
 
     def visit_problematic(self, node):
         self.body.append('<span class="problematic">')
