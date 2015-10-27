@@ -35,8 +35,17 @@ One of possible use:
     body = parts['html_title'] + parts['body'] + parts['html_line'] + \
            parts['html_footnotes'] + parts['html_citations'] + parts['html_hyperlinks']
 
+
+Or you can use rst2html-tiny command tool like standard rst2html:
+
+.. code-block:: sh
+
+    ~$ rst2html-tiny README.rst > README.html       # generate html from reStructured text
+    ~$ rst2html-tiny -h                             # help output
+
+
 Installation
 ------------
 .. code-block:: sh
 
-    $ pip install docutils-tinyhtmlwriter
+    ~$ pip install docutils-tinyhtmlwriter
