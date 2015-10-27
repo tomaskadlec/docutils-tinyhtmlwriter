@@ -103,6 +103,7 @@ class HTMLTranslator(n.NodeVisitor, object):
             '<head>\n']
         self.head = [
             '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n',
+            '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n',
             '<meta name="generator" content="docutils-tinyhtmlwriter %s %s">\n' %
             (__version__, __url__)]
         self.stylesheet = []
@@ -425,7 +426,8 @@ class HTMLTranslator(n.NodeVisitor, object):
 
     def visit_raw(self, node):
         if 'html' in node['format']:
-            self.body.append(node.astext())
+            self.body.append("%s\n" % node.astext())
+            raise n.SkipNode
 
     def depart_raw(self, node):
         pass
