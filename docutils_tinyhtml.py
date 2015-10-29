@@ -6,8 +6,8 @@ web publishers, which want to use their own html headers and footers.
 """
 
 __author__ = "Ondřej Tůma (McBig) <mcbig@zeropage.cz>"
-__date__ = "9 Oct 2015"
-__version__ = "1.1.0rc1"
+__date__ = "29 Oct 2015"
+__version__ = "1.1.0"
 __docformat__ = 'reStructuredText'
 __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
@@ -63,7 +63,6 @@ class Writer(writers.Writer):
         'docinfo', 'html_title', 'body',
         'html_line', 'html_footnotes', 'html_citations', 'html_hyperlinks',
         'body_suffix')
-    # TODO: 'footnotes', 'citations')
     visitor_addons = ('title', 'sections', 'hyperlinks')
 
     def __init__(self):
@@ -88,9 +87,6 @@ class Writer(writers.Writer):
 
 
 class HTMLTranslator(n.NodeVisitor, object):
-    # FIXME: missing
-    #           visit_decoration
-
     list_types = {'arabic': '1',
                   'loweralpha': 'a',
                   'upperalpha': 'A',

@@ -1,5 +1,7 @@
 include *.py
 include MANIFEST.in
 include README.rst
-include LICENCE.txt
+include COPYING
+include TODO
+include ChangeLog
 global-exclude *~
