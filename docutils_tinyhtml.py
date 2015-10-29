@@ -63,8 +63,8 @@ class Writer(writers.Writer):
         'docinfo', 'html_title', 'body',
         'html_line', 'html_footnotes', 'html_citations', 'html_hyperlinks',
         'body_suffix')
-    # TODO: 'footnotes', 'citations', 'hyperlinks')
-    visitor_addons = ('title', 'sections')
+    # TODO: 'footnotes', 'citations')
+    visitor_addons = ('title', 'sections', 'hyperlinks')
 
     def __init__(self):
         writers.Writer.__init__(self)
@@ -150,7 +150,7 @@ class HTMLTranslator(n.NodeVisitor, object):
         self.sections = []
         self.footnotes = []         # TODO
         self.citations = []         # TODO
-        self.hyperlinks = []        # TODO
+        self.hyperlinks = []        # list of tuples hyperlinks references
 
         for admonition in self.admonitions:
             self.__setattr__('visit_%s' % admonition, self.visit_admonition)
@@ -444,7 +444,9 @@ class HTMLTranslator(n.NodeVisitor, object):
         if 'refuri' in node and node['names']:
             name = node['names'][0]
             if self.settings.foot_hyperlinks and name in self._references:
-                refuri = node['refuri'].replace('&', '&amp;')
+                refuri = node['refuri']
+                self.hyperlinks.append((self._references[name], refuri))
+                refuri = refuri.replace('&', '&amp;')
                 self.html_hyperlinks.append(
                     '<tr><th>%s</th><td><a href="%s">%s</a></td></tr>\n' %
                     (self._references[name], refuri, refuri))
