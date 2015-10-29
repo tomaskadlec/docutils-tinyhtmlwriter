@@ -13,7 +13,8 @@ __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
 from docutils import nodes as n, writers
 from docutils.transforms import writer_aux
-from docutils.frontend import validate_nonnegative_int, validate_boolean
+from docutils.frontend import validate_nonnegative_int, validate_boolean, \
+    validate_comma_separated_list
 
 # import sys
 
@@ -42,6 +43,15 @@ class Writer(writers.Writer):
            'validator': validate_boolean}),
          ('Enable html hyperlinks in footnotes section.',
           ['--foot-hyperlinks'],
+          {'default': 0, 'action': 'store_true',
+           'validator': validate_boolean}),
+         ('Comma separated list of stylesheet URLs or FILEs.',
+          ['--stylesheet'],
+          {'metavar': 'URL[,URL,...]', 'default': '',
+           'validator': validate_comma_separated_list}),
+         ('Embed the stylesheet(s) in the output HTML file.  The stylesheet '
+          'files must be accessible during processing. This is NOT default.',
+          ['--embed-stylesheet'],
           {'default': 0, 'action': 'store_true',
            'validator': validate_boolean}),
          ))
@@ -96,6 +106,13 @@ class HTMLTranslator(n.NodeVisitor, object):
                          "'": "&apos;",
                          '>': "&gt;",
                          '<': "&lt;"}
+    head = [
+        '<meta http-equiv="Content-Type" '
+        'content="text/html; charset=utf-8">\n',
+        '<meta name="viewport" '
+        'content="width=device-width, initial-scale=1.0">\n',
+        '<meta name="generator" content="docutils-tinyhtmlwriter %s %s">\n' %
+        (__version__, __url__)]
 
     def __init__(self, document):
         super(HTMLTranslator, self).__init__(document)
@@ -105,12 +122,17 @@ class HTMLTranslator(n.NodeVisitor, object):
             '<!DOCTYPE html>\n',
             '<html lang="%s">\n' % self.settings.language_code,
             '<head>\n']
-        self.head = [
-            '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n',
-            '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n',
-            '<meta name="generator" content="docutils-tinyhtmlwriter %s %s">\n' %
-            (__version__, __url__)]
         self.stylesheet = []
+        if self.settings.embed_stylesheet:
+            for stylesheet in self.settings.stylesheet:
+                with open(stylesheet, 'rt') as style:
+                    self.stylesheet.append(
+                        '<style type="text/css">\n%s</style>\n' % style.read())
+        else:
+            for stylesheet in self.settings.stylesheet:
+                self.stylesheet.append(
+                    '<link rel="stylesheet" href="%s" type="text/css" />\n' %
+                    stylesheet)
         self.body_prefix = ['</head>\n', '<body>\n']
         self.title = ''
         self.html_title = []
