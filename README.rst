@@ -9,10 +9,11 @@ One of possible use:
 .. code-block:: python
     :name: example
 
-    from docutils.core import publish_string
+    from docutils.core import publish_string, publish_parts
     from docutils_tinyhtml import Writer
+    from sys import version_info
 
-    if sys.version_info[0] < 3:
+    if version_info[0] < 3:
         from io import open
 
     writer = Writer()
@@ -33,7 +34,8 @@ One of possible use:
 
     # store only html body
     body = parts['html_title'] + parts['body'] + parts['html_line'] + \
-           parts['html_footnotes'] + parts['html_citations'] + parts['html_hyperlinks']
+        parts['html_footnotes'] + parts['html_citations'] + \
+        parts['html_hyperlinks']
 
 
 Or you can use rst2html-tiny command tool like standard rst2html:

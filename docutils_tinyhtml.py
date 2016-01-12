@@ -7,7 +7,7 @@ web publishers, which want to use their own html headers and footers.
 
 __author__ = "Ondřej Tůma (McBig) <mcbig@zeropage.cz>"
 __date__ = "29 Oct 2015"
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 __docformat__ = 'reStructuredText'
 __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
@@ -465,9 +465,10 @@ class HTMLTranslator(n.NodeVisitor, object):
         else:
             self.section_level += 1
             ids = node['ids'][0]
+            name = node['names'][0] if node['names'] else node['dupnames']
 
             self.body.append('\n<a name="%s"></a>' % ids)
-            self.sections.append((self.section_level, node['names'][0], ids))
+            self.sections.append((self.section_level, name, ids))
 
     def depart_section(self, node):
         if 'system-messages' not in node['classes']:
