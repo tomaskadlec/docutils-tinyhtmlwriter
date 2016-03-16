@@ -5,7 +5,7 @@ try:
 except:
     from distutils.core import setup
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
 
@@ -14,7 +14,7 @@ def doc():
         return readme.read().strip()
 
 setup(
-    name="distutils-tinyhtmlwriter",
+    name="docutils-tinyhtmlwriter",
     version=__version__,
     description="Docutils Writer producing Tiny HTML",
     author="Ondrej Tuma",
@@ -22,6 +22,7 @@ setup(
     url=__url__,
     py_modules=['docutils_tinyhtml'],
     scripts=['rst2html-tiny'],
+    data_files=[('css', ['tiny-writer.css'])],
     license="BSD",
     long_description=doc(),
     classifiers=[

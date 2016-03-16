@@ -1,7 +1,7 @@
-include *.py
 include MANIFEST.in
 include README.rst
 include COPYING
 include TODO
 include ChangeLog
+include tiny-writer.css
 global-exclude *~
