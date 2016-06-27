@@ -45,6 +45,9 @@ Or you can use rst2html-tiny command tool like standard rst2html:
     ~$ rst2html-tiny README.rst > README.html       # generate html from reStructured text
     ~$ rst2html-tiny -h                             # help output
 
+If you have installed recommonmark from https://github.com/rtfd/recommonmark
+you can use md2html-tiny tool for MarkDown source codes.
+
 
 Installation
 ------------

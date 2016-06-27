@@ -24,4 +24,7 @@ Missing visit_ methods:
  * visit_docinfo_item
  * visit_organization
  * visit_contact
- * visit_acronym
+ * visit_acronyma
+
+Attributes / Tags:
+ * image align

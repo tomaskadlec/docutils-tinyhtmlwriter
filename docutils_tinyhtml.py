@@ -6,8 +6,8 @@ web publishers, which want to use their own html headers and footers.
 """
 
 __author__ = "Ondřej Tůma (McBig) <mcbig@zeropage.cz>"
-__date__ = "16 Mar 2015"
-__version__ = "1.1.2"
+__date__ = "27 Jun 2015"
+__version__ = "1.2.0"
 __docformat__ = 'reStructuredText'
 __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
@@ -119,6 +119,13 @@ class HTMLTranslator(n.NodeVisitor, object):
             '<html lang="%s">\n' % self.settings.language_code,
             '<head>\n']
         self.stylesheet = []
+        # compatible fix with docutils_html5 writer...
+        # FIXME: better is check if instance is str or unicode...
+        if not isinstance(self.settings.stylesheet, (list, tuple)):
+            self.settings.stylesheet = self.settings.stylesheet.strip()
+            if self.settings.stylesheet:
+                self.settings.stylesheet = [self.settings.stylesheet]
+
         if self.settings.embed_stylesheet:
             for stylesheet in self.settings.stylesheet:
                 with open(stylesheet, 'rt') as style:
@@ -328,7 +335,8 @@ class HTMLTranslator(n.NodeVisitor, object):
             self.body.append('</span>')
 
     def visit_bullet_list(self, node):
-        self.body.append('<ul type="%s">\n' % self.list_types[node['bullet']])
+        self.body.append('<ul type="%s">\n' %
+                         self.list_types[node.get('bullet', '*')])
 
     def depart_bullet_list(self, node):
         self.body.append('</ul>\n\n')

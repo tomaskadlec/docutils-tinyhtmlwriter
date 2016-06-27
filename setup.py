@@ -5,7 +5,7 @@ try:
 except:
     from distutils.core import setup
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
 
@@ -21,12 +21,12 @@ setup(
     author_email="mcbig@zeropage.cz",
     url=__url__,
     py_modules=['docutils_tinyhtml'],
-    scripts=['rst2html-tiny'],
+    scripts=['rst2html-tiny', 'md2html-tiny'],
     data_files=[('css', ['tiny-writer.css'])],
     license="BSD",
     long_description=doc(),
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "Intended Audience :: End Users/Desktop",
