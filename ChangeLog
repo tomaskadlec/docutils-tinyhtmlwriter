@@ -1,4 +1,7 @@
-1.1.1 Ondrej tuma <mcbig@zeropage.cz>
+1.3.0 Ondrej Tuma <mcbig@zeropage.cz>
+    * header and footer support
+
+1.2.0 Ondrej Tuma <mcbig@zeropage.cz>
     * fix project name in pypi to right docutils-tinyhtmlwriter
     * adding tiny-writer.css to package
 

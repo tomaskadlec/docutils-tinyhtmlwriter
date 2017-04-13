@@ -5,13 +5,14 @@ try:
 except:
     from distutils.core import setup
 
-__version__ = "1.2.0"
+__version__ = "1.3.0dev1"
 __url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
 
 def doc():
     with open('README.rst', 'r') as readme:
         return readme.read().strip()
+
 
 setup(
     name="docutils-tinyhtmlwriter",

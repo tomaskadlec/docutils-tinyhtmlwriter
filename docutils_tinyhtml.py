@@ -4,19 +4,16 @@ Docutils Tiny HTML Writer is another docutils html writer, with very light html
 output. It will create mainly for use in other project's like doc generators or
 web publishers, which want to use their own html headers and footers.
 """
-
-__author__ = "Ondřej Tůma (McBig) <mcbig@zeropage.cz>"
-__date__ = "27 Jun 2015"
-__version__ = "1.2.0"
-__docformat__ = 'reStructuredText'
-__url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
-
 from docutils import nodes as n, writers
 from docutils.transforms import writer_aux
 from docutils.frontend import validate_nonnegative_int, validate_boolean, \
     validate_comma_separated_list
 
-# import sys
+__author__ = "Ondřej Tůma (McBig) <mcbig@zeropage.cz>"
+__date__ = "13 Apr 2017"
+__version__ = "1.3.0dev1"
+__docformat__ = 'reStructuredText'
+__url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
 
 
 class Writer(writers.Writer):
@@ -59,10 +56,10 @@ class Writer(writers.Writer):
 
     output = None
     visitor_attributes = (
-        'head_prefix', 'head', 'stylesheet', 'body_prefix',
+        'head_prefix', 'head', 'stylesheet', 'body_prefix', 'header',
         'docinfo', 'html_title', 'body',
         'html_line', 'html_footnotes', 'html_citations', 'html_hyperlinks',
-        'body_suffix')
+        'footer', 'body_suffix')
     visitor_addons = ('title', 'sections', 'hyperlinks')
 
     def __init__(self):
@@ -137,10 +134,12 @@ class HTMLTranslator(n.NodeVisitor, object):
                     '<link rel="stylesheet" href="%s" type="text/css" />\n' %
                     stylesheet)
         self.body_prefix = ['</head>\n', '<body>\n']
+        self.header = []
         self.title = ''
         self.html_title = []
         self.docinfo = []           # TODO: use for docinfo
         self.body = []
+        self.footer = []
         self.body_suffix = ['</body>\n', '</html>\n']
         self.subtitle = []          # TODO: for subtitle
         self.html_line = []
@@ -687,6 +686,30 @@ class HTMLTranslator(n.NodeVisitor, object):
 
     def depart_problematic(self, node):
         self.body.append('</span>')
+
+    def visit_decoration(self, node):
+        pass
+
+    def depart_decoration(self, node):
+        pass
+
+    def visit_header(self, node):
+        self.context = self.body
+        self.body = self.header
+        self.body.append('<div class="header">')
+
+    def depart_header(self, node):
+        self.body.append('</div>\n')
+        self.body = self.context
+
+    def visit_footer(self, node):
+        self.context = self.body
+        self.body = self.footer
+        self.body.append('<div class="footer">')
+
+    def depart_footer(self, node):
+        self.body.append('</div>\n')
+        self.body = self.context
 
 
 if __name__ == "__main__":

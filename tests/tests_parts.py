@@ -1,11 +1,12 @@
 from sys import path as python_path
-from os import path, makedirs
+from os import path
 
 python_path.insert(0, path.abspath(
-        path.join(path.dirname(__file__), path.pardir) ))
+        path.join(path.dirname(__file__), path.pardir)))
 
 from docutils.core import publish_parts
 from docutils_tinyhtml import Writer
+
 
 def test_html_hyperlinks():
     """
@@ -15,21 +16,22 @@ Zeropage.cz_
     """
     writer = Writer()
     parts = publish_parts(source=test_html_hyperlinks.__doc__,
-                           writer=writer,
-                           writer_name='html')
+                          writer=writer,
+                          writer_name='html')
     for k, v in parts.items():
-        print "%s\t:(%d)\t%s" %(k, len(v), str(v)[:60].replace('\n', ' '))
+        print("%s\t:(%d)\t%s" % (k, len(v), str(v)[:60].replace('\n', ' ')))
     assert len(parts['html_hyperlinks']) > 0
 
 
 def test_html_line():
     writer = Writer()
     parts = publish_parts(source=test_html_hyperlinks.__doc__,
-                           writer=writer,
-                           writer_name='html')
+                          writer=writer,
+                          writer_name='html')
     for k, v in parts.items():
-        print "%s\t:(%d)\t%s" %(k, len(v), str(v)[:60].replace('\n', ' '))
+        print("%s\t:(%d)\t%s" % (k, len(v), str(v)[:60].replace('\n', ' ')))
     assert len(parts['html_line']) > 0
+
 
 def test_html_footnotes():
     """
@@ -39,10 +41,10 @@ Please RTFM [1]_.
     """
     writer = Writer()
     parts = publish_parts(source=test_html_footnotes.__doc__,
-                           writer=writer,
-                           writer_name='html')
+                          writer=writer,
+                          writer_name='html')
     for k, v in parts.items():
-        print "%s\t:(%d)\t%s" %(k, len(v), str(v)[:60].replace('\n', ' '))
+        print("%s\t:(%d)\t%s" % (k, len(v), str(v)[:60].replace('\n', ' ')))
     assert len(parts['html_footnotes']) > 0
 
 
@@ -55,10 +57,10 @@ Here is a citation reference: [CIT2002]_.
     """
     writer = Writer()
     parts = publish_parts(source=test_html_citations.__doc__,
-                           writer=writer,
-                           writer_name='html')
+                          writer=writer,
+                          writer_name='html')
     for k, v in parts.items():
-        print "%s\t:(%d)\t%s" %(k, len(v), str(v)[:60].replace('\n', ' '))
+        print("%s\t:(%d)\t%s" % (k, len(v), str(v)[:60].replace('\n', ' ')))
     assert len(parts['html_citations']) > 0
 
 
@@ -70,9 +72,19 @@ some text
     """
     writer = Writer()
     parts = publish_parts(source=test_title.__doc__,
-                           writer=writer,
-                           writer_name='html')
+                          writer=writer,
+                          writer_name='html')
     for k, v in parts.items():
-        print "%s\t:(%d)\t%s" %(k, len(v), str(v)[:80].replace('\n', ' '))
+        print("%s\t:(%d)\t%s" % (k, len(v), str(v)[:80].replace('\n', ' ')))
     assert len(parts['html_title']) > 0
 
+
+def test_header():
+    """.. header:: Wow header"""
+    writer = Writer()
+    parts = publish_parts(source=test_header.__doc__,
+                          writer=writer,
+                          writer_name='html')
+    for k, v in parts.items():
+        print("%s\t:(%d)\t%s" % (k, len(v), str(v)[:80].replace('\n', ' ')))
+    assert len(parts['header']) > 0
