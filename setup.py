@@ -6,7 +6,7 @@ except:
     from distutils.core import setup
 
 __version__ = "1.2.1"
-__url__ = "https://github.com/ondratu/docutils-tinyhtmlwrite://github.com/tomaskadlec/docutils-tinyhtmlwriter"
+__url__ = "https://github.com/tomaskadlec/docutils-tinyhtmlwriter"
 
 
 def doc():
