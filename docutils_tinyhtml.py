@@ -374,7 +374,7 @@ class HTMLTranslator(n.NodeVisitor, object):
         self.context = self.body
         self.body = self.html_footnotes
         self.body.append('<tr>')
-        self.body.append('<td><a name="%s"></a>' % node['ids'][0])
+        self.body.append('<td id="%s">' % node['ids'][0])
 
     def depart_footnote(self, node):
         self.body.append('</td></tr>\n')
@@ -390,7 +390,7 @@ class HTMLTranslator(n.NodeVisitor, object):
         self.context = self.body
         self.body = self.html_citations
         self.body.append('<tr>')
-        self.body.append('<td><a name="%s"></a>' % node['names'][0])
+        self.body.append('<td id="%s">' % node['names'][0])
 
     def depart_citation(self, node):
         self.body.append('</td></tr>\n')
@@ -442,7 +442,7 @@ class HTMLTranslator(n.NodeVisitor, object):
 
     def visit_target(self, node):
         if 'refid' in node:
-            self.body.append('<a name="%s"></a>' % node['refid'])
+            self.body.append('<span id="%s"></a>' % node['refid'])
         if 'refuri' in node and node['names']:
             name = node['names'][0]
             if self.settings.foot_hyperlinks and name in self._references:
@@ -473,7 +473,7 @@ class HTMLTranslator(n.NodeVisitor, object):
             ids = node['ids'][0]
             name = node['names'][0] if node['names'] else node['dupnames']
 
-            self.body.append('\n<a name="%s"></a>' % ids)
+            self.body.append('\n<span id="%s"></span>' % ids)
             self.sections.append((self.section_level, name, ids))
 
     def depart_section(self, node):
