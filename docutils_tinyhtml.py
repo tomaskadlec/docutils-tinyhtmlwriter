@@ -335,15 +335,13 @@ class HTMLTranslator(n.NodeVisitor, object):
             self.body.append('</span>')
 
     def visit_bullet_list(self, node):
-        self.body.append('<ul type="%s">\n' %
-                         self.list_types[node.get('bullet', '*')])
+        self.body.append('<ul>\n')
 
     def depart_bullet_list(self, node):
         self.body.append('</ul>\n\n')
 
     def visit_enumerated_list(self, node):
-        self.body.append('<ol type="%s">\n' %
-                         self.list_types[node['enumtype']])
+        self.body.append('<ol >\n')
 
     def depart_enumerated_list(self, node):
         self.body.append('</ol>\n\n')
