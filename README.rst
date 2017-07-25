@@ -1,5 +1,9 @@
 Docutils Tiny HTML Writer
 -------------------------
+
+This is a fork of https://github.com/ondratu/docutils-tinyhtmlwriter which adresses
+a few HTML 5 validation errors and warnings.
+
 Docutils Tiny HTML Writer is another docutils html writer, with very light html
 output. It will create mainly for use in other project's like doc generators or
 web publishers, which want to use their own html headers and footers.

@@ -5,8 +5,8 @@ try:
 except:
     from distutils.core import setup
 
-__version__ = "1.2.0"
-__url__ = "https://github.com/ondratu/docutils-tinyhtmlwriter"
+__version__ = "1.2.1"
+__url__ = "https://github.com/ondratu/docutils-tinyhtmlwrite://github.com/tomaskadlec/docutils-tinyhtmlwriter"
 
 
 def doc():
@@ -14,11 +14,11 @@ def doc():
         return readme.read().strip()
 
 setup(
-    name="docutils-tinyhtmlwriter",
+    name="docutils-tinyhtmlwriter-fork",
     version=__version__,
     description="Docutils Writer producing Tiny HTML",
-    author="Ondrej Tuma",
-    author_email="mcbig@zeropage.cz",
+    author="Tomas Kadlec",
+    author_email="tomas@tomaskadlec.net",
     url=__url__,
     py_modules=['docutils_tinyhtml'],
     scripts=['rst2html-tiny', 'md2html-tiny'],
