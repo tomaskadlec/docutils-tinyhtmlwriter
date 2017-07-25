@@ -442,7 +442,7 @@ class HTMLTranslator(n.NodeVisitor, object):
 
     def visit_target(self, node):
         if 'refid' in node:
-            self.body.append('<span id="%s"></a>' % node['refid'])
+            self.body.append('<span id="%s"></span>' % node['refid'])
         if 'refuri' in node and node['names']:
             name = node['names'][0]
             if self.settings.foot_hyperlinks and name in self._references:
